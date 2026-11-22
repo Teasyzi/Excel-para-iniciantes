@@ -1,5 +1,7 @@
 # Excel do Zero
 
+👉 **[Abrir o site](https://teasyzi.github.io/Excel-para-iniciantes/)**
+
 Site para aprender Excel **fazendo**: um passo por vez, com desenho, explicação curta e uma missão prática numa planilha simulada (com fórmulas em português: `SOMA`, `SE`, `PROCV`, `PROCX`…).
 
 Feito sob medida para: começar do zero, usar no **trabalho** e em **análise de dados**, com **Microsoft 365** no PC.
