@@ -684,5 +684,5 @@
     ]
   });
 
-  window.COURSE = { TRAILS, LESSONS };
+  window.COURSE = { TRAILS, LESSONS, H: { T, uses, works, tsv, isF, norm, sameText } };
 })();

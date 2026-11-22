@@ -27,7 +27,14 @@
   const isDone = (l, i) => !!prog.done[stepKey(l, i)];
   const lessonDone = (l) => l.steps.every((_, i) => isDone(l, i));
   const lessonCount = (l) => l.steps.filter((_, i) => isDone(l, i)).length;
-  const firstPending = () => { for (const l of LESSONS) { const i = l.steps.findIndex((_, k) => !isDone(l, k)); if (i >= 0) return { l, i }; } return null; };
+  const modeOf = (l) => l.mode || 'ini';
+  const MODES = {
+    ini: { name: 'Iniciante', emoji: '🌱', desc: 'Passo a passo com desenhos e explicação.', h1: 'Aprenda Excel <em>fazendo</em>, um passo por vez.', lead: 'Cada passo tem um desenho, uma explicação curtinha e uma missão para você fazer numa planilha de verdade (simulada aqui na tela).', start: 'Do zero: sem pular etapas' },
+    med: { name: 'Médio', emoji: '🛠️', desc: 'Missões bem explicadas, sem ensinar como fazer.', h1: 'Hora de <em>resolver</em> sozinho.', lead: 'Aqui não tem a explicação ao lado. Você recebe a situação e <strong>exatamente o que entregar</strong>, e escolhe as fórmulas. Dicas só em último caso, e podem ser abertas uma de cada vez.', start: 'Você já domina o básico' },
+    adv: { name: 'Avançado', emoji: '🚀', desc: 'Desafios complexos no seu Excel, sem explicação.', h1: 'Desafios no <em>seu Excel</em>.', lead: 'Sem tutorial. Você recebe os dados e o pedido do “chefe”, resolve no Excel instalado no seu computador e confere os números aqui. As pistas fazem pensar, mas nunca entregam a fórmula.', start: 'Você resolve problemas reais' }
+  };
+  const curMode = () => (MODES[prog.mode] ? prog.mode : 'ini');
+  const firstPending = () => { for (const l of LESSONS.filter((x) => modeOf(x) === curMode())) { const i = l.steps.findIndex((_, k) => !isDone(l, k)); if (i >= 0) return { l, i }; } return null; };
 
   /* ---------- rotas: #/  e  #/aula/<id>/<passo> ---------- */
   function route() {
@@ -78,27 +85,38 @@
   /* ---------- início ---------- */
   function renderHome() {
     document.title = 'Excel do Zero — aprenda fazendo';
-    const total = LESSONS.reduce((a, l) => a + l.steps.length, 0), done = Object.keys(prog.done).length;
+    const mode = curMode(), M = MODES[mode];
+    const mine = LESSONS.filter((l) => modeOf(l) === mode);
+    const total = mine.reduce((a, l) => a + l.steps.length, 0), done = mine.reduce((a, l) => a + lessonCount(l), 0);
     const next = firstPending();
     app.innerHTML = '';
+    const tabs = $('div', 'tabs'); tabs.setAttribute('role', 'tablist');
+    Object.keys(MODES).forEach((k) => {
+      const ls = LESSONS.filter((l) => modeOf(l) === k), t = ls.reduce((a, l) => a + l.steps.length, 0), d = ls.reduce((a, l) => a + lessonCount(l), 0);
+      const b = $('button', 'tab' + (k === mode ? ' on' : ''), `<span class="tab-e">${MODES[k].emoji}</span><span><strong>${MODES[k].name}</strong><small>${MODES[k].desc}</small><small class="tab-p">${d} de ${t} concluídos</small></span>`);
+      b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(k === mode));
+      b.addEventListener('click', () => { prog.mode = k; save(); renderHome(); });
+      tabs.appendChild(b);
+    });
+    app.appendChild(tabs);
     const hero = $('section', 'hero');
-    hero.innerHTML = `<div class="hero-txt"><p class="eyebrow">Excel do Zero ao Avançado</p>
-      <h1>Aprenda Excel <em>fazendo</em>, um passo por vez.</h1>
-      <p class="lead">Feito para quem está começando do zero e quer usar o Excel no <strong>trabalho</strong> e em <strong>análise de dados</strong>. Cada passo tem um desenho, uma explicação curtinha e uma missão para você fazer numa planilha de verdade (simulada aqui na tela).</p></div>`;
+    hero.innerHTML = `<div class="hero-txt"><p class="eyebrow">Nível ${M.name}</p>
+      <h1>${M.h1}</h1>
+      <p class="lead">${M.lead}</p></div>`;
     const cta = $('div', 'cta');
     const btn = $('button', 'btn primary big', next ? (done ? '▶ Continuar de onde parei' : '▶ Começar agora') : '🎉 Revisar do começo');
-    btn.addEventListener('click', () => { if (next) go(`#/aula/${next.l.id}/${next.i}`); else go(`#/aula/${LESSONS[0].id}/0`); });
+    btn.addEventListener('click', () => { if (next) go(`#/aula/${next.l.id}/${next.i}`); else go(`#/aula/${mine[0].id}/0`); });
     cta.appendChild(btn); hero.querySelector('.hero-txt').appendChild(cta);
     const prof = $('aside', 'plan');
     prof.innerHTML = `<h2>Seu plano</h2><ul>
       <li><span>🎯</span><div><strong>Objetivo</strong><br>Trabalho e análise de dados</div></li>
-      <li><span>🌱</span><div><strong>Ponto de partida</strong><br>Do zero: sem pular etapas</div></li>
+      <li><span>${M.emoji}</span><div><strong>Nível ${M.name}</strong><br>${M.start}</div></li>
       <li><span>💻</span><div><strong>Seu Excel</strong><br>Microsoft 365 no PC (com PROCX, FILTRO, ÚNICO…)</div></li></ul>
-      <div class="meter" aria-label="Progresso"><div style="width:${Math.round(done / total * 100)}%"></div></div><p class="muted">${done} de ${total} passos concluídos</p>`;
+      <div class="meter" aria-label="Progresso"><div style="width:${total ? Math.round(done / total * 100) : 0}%"></div></div><p class="muted">${done} de ${total} ${mode === 'adv' ? 'desafios' : mode === 'med' ? 'missões' : 'passos'} concluídos</p>`;
     hero.appendChild(prof); app.appendChild(hero);
 
-    const map = $('section', 'map'); map.appendChild($('h2', '', 'Trilha de aprendizado'));
-    TRAILS.forEach((t) => {
+    const map = $('section', 'map'); map.appendChild($('h2', '', mode === 'ini' ? 'Trilha de aprendizado' : mode === 'med' ? 'Missões' : 'Desafios'));
+    TRAILS.filter((t) => (t.mode || 'ini') === mode).forEach((t) => {
       const ls = LESSONS.filter((l) => l.trail === t.id);
       const box = $('div', 'trail');
       box.innerHTML = `<div class="trail-head"><span class="trail-emoji">${t.emoji}</span><div><h3>${t.name}</h3><span class="chip">${t.level}</span></div></div>`;
@@ -109,7 +127,7 @@
         const idx = n === all ? 0 : n;
         a.href = `#/aula/${l.id}/${idx}`;
         a.innerHTML = `<div class="lc-top"><strong>${l.title}</strong><span class="lc-state">${n === all ? '✓' : n ? '…' : ''}</span></div>
-          <div class="lc-meta">${all} passos · ${l.time}</div><div class="meter sm"><div style="width:${n / all * 100}%"></div></div>`;
+          <div class="lc-meta">${all} ${mode === 'adv' ? 'desafio' : mode === 'med' ? 'missões' : 'passos'}${all > 1 && mode === 'adv' ? 's' : ''} · ${l.time}</div><div class="meter sm"><div style="width:${n / all * 100}%"></div></div>`;
         list.appendChild(a);
       });
       box.appendChild(list); map.appendChild(box);
@@ -132,20 +150,23 @@
     l.steps.forEach((_, k) => { const d = $('a', 'dot' + (k === i ? ' now' : '') + (isDone(l, k) ? ' ok' : '')); d.href = `#/aula/${l.id}/${k}`; d.title = `Passo ${k + 1}`; d.textContent = k + 1; dots.appendChild(d); });
     top.appendChild(dots); app.appendChild(top);
 
-    const main = $('main', 'step');
+    const md = modeOf(l), solo = md !== 'ini';
+    const main = $('main', 'step' + (solo ? ' solo' : ''));
     const learn = $('section', 'card learn');
-    learn.innerHTML = `<p class="tag">1 · Entenda</p><h1>${step.title}</h1><div class="say">${step.say}</div>${step.draw ? `<figure class="figure">${step.draw}</figure>` : ''}`;
+    if (!solo) learn.innerHTML = `<p class="tag">1 · Entenda</p><h1>${step.title}</h1><div class="say">${step.say}</div>${step.draw ? `<figure class="figure">${step.draw}</figure>` : ''}`;
     const doit = $('section', 'card doit');
-    doit.innerHTML = `<p class="tag">2 · Faça</p>`;
+    doit.innerHTML = solo ? `<p class="tag">${md === 'adv' ? 'Desafio' : 'Missão'} ${i + 1}</p><h1>${step.title}</h1><div class="scenario">${step.scenario || step.brief}</div>` : `<p class="tag">2 · Faça</p>`;
     const mission = $('div', 'mission'); mission.innerHTML = step.task ? `<span class="m-ico">🎯</span><div>${step.task}</div>` : '';
     if (step.quiz) mission.innerHTML = `<span class="m-ico">🎯</span><div>${esc(step.quiz.q)}</div>`;
     if (step.real) mission.innerHTML = `<span class="m-ico">🖥️</span><div>Faça no <strong>seu Excel</strong> e marque cada item.</div>`;
+    if (md === 'adv') mission.innerHTML = `<span class="m-ico">📋</span><div><strong>O que entregar</strong><ul>${step.deliver.map((d) => `<li>${d}</li>`).join('')}</ul></div>`;
     doit.appendChild(mission);
     const stage = $('div', 'stage'); doit.appendChild(stage);
     const msg = $('div', 'msg'); msg.setAttribute('aria-live', 'polite'); doit.appendChild(msg);
     const helpRow = $('div', 'help');
     doit.appendChild(helpRow);
-    main.append(learn, doit); app.appendChild(main);
+    if (solo) main.append(doit); else main.append(learn, doit);
+    app.appendChild(main);
 
     const nav = $('footer', 'nav');
     const prev = $('a', 'btn ghost', '← Voltar'); prev.href = i > 0 ? `#/aula/${l.id}/${i - 1}` : '#/';
@@ -166,14 +187,19 @@
       msg.className = 'msg ok'; msg.innerHTML = `<strong>✔ Muito bem!</strong> ${extra || step.win || ''}`;
       dots.children[i].classList.add('ok'); nextBtn.classList.add('pulse');
     };
-    const hintBtn = $('button', 'btn small', '💡 Dica'), showBtn = $('button', 'btn small ghost', '👀 Mostrar a resposta');
+    const hints = step.hints || (step.hint ? [step.hint] : []);
+    const hintBtn = $('button', 'btn small', '💡 Dica'), showBtn = $('button', 'btn small ghost', solo ? '🏳️ Desistir e ver a resposta' : '👀 Mostrar a resposta');
     showBtn.style.display = 'none';
+    const hintLabel = () => { hintBtn.textContent = hintLevel === 0 ? (solo ? `💡 Pedir uma dica (${hints.length} disponíveis)` : '💡 Dica') : (hintLevel < hints.length ? `💡 Próxima dica (${hintLevel}/${hints.length})` : `💡 Dicas (${hintLevel}/${hints.length})`); };
     hintBtn.addEventListener('click', () => {
-      hintLevel = 1; msg.className = 'msg hint'; msg.innerHTML = '<strong>Dica:</strong> ' + step.hint; showBtn.style.display = '';
+      hintLevel = solo ? (hintLevel >= hints.length ? 1 : hintLevel + 1) : 1;
+      msg.className = 'msg hint'; msg.innerHTML = `<strong>Dica${solo ? ' ' + hintLevel : ''}:</strong> ` + hints[hintLevel - 1]; hintLabel();
+      if (!solo || hintLevel >= hints.length) showBtn.style.display = '';
     });
-    showBtn.addEventListener('click', () => { prog.help[stepKey(l, i)] = true; if (solver) solver(); });
-    if (step.hint) helpRow.appendChild(hintBtn);
-    if (step.solve) helpRow.appendChild(showBtn);
+    showBtn.addEventListener('click', () => { if (solo && !confirm('Tem certeza? Tente mais um pouco antes de ver a resposta.')) return; prog.help[stepKey(l, i)] = true; if (solver) solver(); });
+    if (hints.length && md !== 'adv') { helpRow.appendChild(hintBtn); hintLabel(); }
+    if (step.solve && md !== 'adv') helpRow.appendChild(showBtn);
+    if (md === 'adv') { hintBtn.style.display = ''; helpRow.appendChild(hintBtn); hintLabel(); }
 
     /* --- tipo: planilha --- */
     if (step.sheet) {
@@ -192,6 +218,14 @@
       solver = () => { step.solve(view); };
       window.__view = view; window.__step = step;
       setTimeout(() => view.focus(), 50);
+    }
+
+    /* --- tipo: desafio avançado (no Excel real) --- */
+    if (md === 'adv') {
+      const w = advWidget(step, (all) => { if (all) succeed('Resultado confirmado. É assim que se resolve um problema real.'); });
+      stage.appendChild(w.el); window.__adv = w;
+      if (finished) w.fill();
+      mission.querySelector('ul').classList.add('deliver');
     }
 
     /* --- tipo: quiz --- */
@@ -274,6 +308,45 @@
     }
     draw();
     return { el, set: (s) => { Object.assign(st, s); draw(); onChange(st); } };
+  }
+
+  /* ---------- widget: desafio avançado ---------- */
+  function parseNum(t) {
+    t = String(t).replace(/R\$|%|\s/g, '');
+    if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.'); else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    return t === '' ? NaN : Number(t);
+  }
+  const plain = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  function advWidget(step, onDone) {
+    const data = step.build(); const el = $('div', 'adv');
+    if (data.tsv) {
+      const row = $('div', 'real-data'); const b = $('button', 'btn small', `📋 Copiar dados (${data.rows} linhas)`); b.type = 'button';
+      const pre = $('pre', 'real-pre'); pre.textContent = data.tsv.split('\n').slice(0, 8).join('\n') + '\n…';
+      b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(data.tsv); b.textContent = '✔ Copiado! Cole na A1 do Excel'; } catch (e) { b.textContent = 'Não consegui copiar: use o arquivo CSV'; } });
+      const dl = $('a', 'btn small ghost', '⬇ Baixar CSV'); dl.href = URL.createObjectURL(new Blob(['\ufeff' + data.tsv.replace(/\t/g, ';')], { type: 'text/csv' })); dl.download = (step.file || 'dados') + '.csv';
+      row.append(b, dl); el.append(row, pre);
+    } else if (data.params) el.appendChild($('div', 'params', data.params));
+    const qs = $('div', 'qs'); const rows = [];
+    data.questions.forEach((q) => {
+      const r = $('div', 'q'); const id = 'q' + Math.random().toString(36).slice(2, 7);
+      r.innerHTML = `<label for="${id}">${q.label}</label><div class="q-in"><input id="${id}" autocomplete="off" placeholder="${q.type === 'text' ? 'sua resposta' : 'número'}"><span class="q-s" aria-live="polite"></span></div>`;
+      rows.push({ q, input: r.querySelector('input'), st: r.querySelector('.q-s'), row: r }); qs.appendChild(r);
+    });
+    el.appendChild(qs);
+    let checks = [];
+    if (step.checklist) { const ol = $('ul', 'checks'); step.checklist.forEach((t) => { const li = $('li'); li.innerHTML = `<input type="checkbox"><label>${t}</label>`; const cb = li.querySelector('input'); cb.addEventListener('change', () => { li.classList.toggle('on', cb.checked); }); li.querySelector('label').addEventListener('click', () => cb.click()); checks.push(cb); ol.appendChild(li); }); el.appendChild($('p', 'tag', 'Marque quando concluir no Excel')); el.appendChild(ol); }
+    const go2 = $('button', 'btn primary', 'Conferir minhas respostas'); go2.type = 'button'; el.appendChild(go2);
+    const okq = (q, v) => q.type === 'text' ? plain(v) === plain(q.answer) : Math.abs(parseNum(v) - q.answer) <= (q.tol === undefined ? 0.01 : q.tol);
+    function verify() {
+      let all = true;
+      rows.forEach((r) => { const v = r.input.value; const ok = v.trim() !== '' && okq(r.q, v); r.row.classList.toggle('good', ok); r.st.textContent = v.trim() === '' ? '' : ok ? '✔ confere' : '✗ ainda não bate'; if (!ok) all = false; });
+      const boxes = checks.every((c) => c.checked);
+      if (all && !boxes) { el.querySelector('.q-note') || el.insertBefore($('p', 'msg warn q-note', 'Os números conferem! Falta marcar a lista de etapas.'), go2); }
+      else { const n = el.querySelector('.q-note'); if (n) n.remove(); }
+      onDone(all && boxes);
+    }
+    go2.addEventListener('click', verify);
+    return { el, verify, fill: () => { rows.forEach((r) => { r.input.value = String(r.q.answer); }); checks.forEach((c) => { c.checked = true; c.closest('li').classList.add('on'); }); verify(); }, data };
   }
 
   /* ---------- widget: fazer no Excel real ---------- */

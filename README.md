@@ -4,7 +4,13 @@ Site para aprender Excel **fazendo**: um passo por vez, com desenho, explicaçã
 
 Feito sob medida para: começar do zero, usar no **trabalho** e em **análise de dados**, com **Microsoft 365** no PC.
 
-## O que tem
+## Três níveis
+
+- **Iniciante**: 13 aulas e 51 passos, com desenho, explicação e missão.
+- **Médio**: 14 missões na planilha simulada, sem explicação ao lado. Dizem o que entregar, não como fazer; as dicas abrem uma de cada vez e dá para desistir e ver a resposta.
+- **Avançado**: 6 desafios para fazer no Excel instalado no computador. Sem tutorial e sem resposta pronta: a pessoa copia os dados, resolve e digita os números que encontrou, e o site confere. As pistas só fazem pensar.
+
+## Conteúdo do nível Iniciante
 
 13 aulas, 51 passos, em 6 trilhas:
 
@@ -27,7 +33,9 @@ Os passos de Power Query, funções dinâmicas, dashboard e macros são feitos n
 - `js/engine.js`: motor de planilha (parser e avaliador de fórmulas em português)
 - `js/sheetview.js`: grade interativa, barra de fórmulas, ferramentas e gráficos
 - `js/draw.js`: desenhos SVG das aulas
-- `js/lessons.js`: todo o conteúdo (trilhas, aulas, passos, verificações)
+- `js/lessons.js`: conteúdo do nível Iniciante
+- `js/medio.js`: missões do nível Médio
+- `js/avancado.js`: desafios do nível Avançado (dados gerados com semente fixa; respostas calculadas no código)
 - `js/app.js`: navegação, progresso, quiz, tabela dinâmica e passos "no seu Excel"
 - `css/style.css`: estilos (claro e escuro)
 
