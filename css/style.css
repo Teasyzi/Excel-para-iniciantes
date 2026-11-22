@@ -22,7 +22,7 @@ code { background: var(--hdr); border: 1px solid var(--line); padding: .05em .35
 kbd { background: var(--card); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 .35em; font: .85em ui-monospace, monospace; }
 .muted { color: var(--muted); } .small { font-size: .85rem; }
 .skip { position: absolute; left: -999px; } .skip:focus { left: 8px; top: 8px; background: var(--card); padding: 8px 12px; z-index: 99; }
-.topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: 10px 16px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: 10px 16px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; color: var(--ink); text-decoration: none; }
 .logo { background: var(--green); color: #fff; width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; font-weight: 900; }
 #app { max-width: 1180px; margin: 0 auto; padding: 20px 16px 60px; outline: none; }
@@ -141,3 +141,10 @@ button.link { background: none; border: 0; color: var(--muted); text-decoration:
 @keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: none; opacity: 1; } } @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } } @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
 @media (max-width: 860px) { .hero, .step { grid-template-columns: 1fr; } .dots { margin-left: 0; } .nav { flex-wrap: wrap; } }
+
+#userbar { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: .9rem; }
+.auth { max-width: 440px; margin: 30px auto; } .auth h1 { font-size: 1.6rem; } .auth form { display: grid; gap: 12px; margin-top: 14px; }
+.auth label { display: grid; gap: 4px; font-weight: 700; font-size: .9rem; }
+.auth input { font: inherit; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--cell); color: var(--ink); }
+.auth input:focus { border-color: var(--green); outline: none; } .auth .switch { text-align: center; margin: 16px 0 8px; }
+.auth button[disabled] { opacity: .6; }

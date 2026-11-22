@@ -7,10 +7,22 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   /* ---------- progresso (localStorage, com proteção) ---------- */
-  const KEY = 'excel-do-zero-v1';
-  let prog = { done: {}, help: {} };
-  try { const s = localStorage.getItem(KEY); if (s) prog = Object.assign(prog, JSON.parse(s)); } catch (e) { /* sem storage: segue sem salvar */ }
+  const OLD_KEY = 'excel-do-zero-v1';
+  let KEY = OLD_KEY, prog = { done: {}, help: {} };
+  const rd = (k) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(prog)); } catch (e) { /* ignora */ } };
+  // progresso de cada conta fica separado; o progresso anônimo antigo é adotado pela primeira conta
+  function loadProgress() {
+    const u = Auth.user(); KEY = u ? OLD_KEY + ':' + u.id : OLD_KEY;
+    prog = Object.assign({ done: {}, help: {} }, rd(KEY) || (u && rd(OLD_KEY)) || {});
+    const bar = document.getElementById('userbar');
+    bar.innerHTML = '';
+    if (u) {
+      const who = $('span', 'who', '👤 ' + esc(u.name)); const out = $('button', 'link', 'Sair');
+      out.addEventListener('click', () => { Auth.logout(); loadProgress(); go('#/entrar'); });
+      bar.append(who, out);
+    }
+  }
   const stepKey = (l, i) => l.id + ':' + i;
   const isDone = (l, i) => !!prog.done[stepKey(l, i)];
   const lessonDone = (l) => l.steps.every((_, i) => isDone(l, i));
@@ -21,6 +33,8 @@
   function route() {
     const h = location.hash.replace(/^#\/?/, '').split('/');
     window.scrollTo(0, 0);
+    if (!Auth.user()) return renderAuth(h[0] === 'cadastro' ? 'cadastro' : 'entrar');
+    if (h[0] === 'entrar' || h[0] === 'cadastro') return go('#/');
     if (h[0] === 'aula') {
       const l = LESSONS.find((x) => x.id === h[1]);
       if (l) { const i = Math.max(0, Math.min(l.steps.length, parseInt(h[2] || '0', 10) || 0)); return i >= l.steps.length ? renderLessonEnd(l) : renderStep(l, i); }
@@ -29,6 +43,37 @@
   }
   const go = (hash) => { if (location.hash === hash) route(); else location.hash = hash; };
   window.addEventListener('hashchange', route);
+
+  /* ---------- entrar / cadastrar ---------- */
+  function renderAuth(mode) {
+    document.title = (mode === 'cadastro' ? 'Criar conta' : 'Entrar') + ' · Excel do Zero';
+    loadProgress(); app.innerHTML = '';
+    const reg = mode === 'cadastro';
+    const box = $('main', 'auth card');
+    box.innerHTML = `<p class="tag">${reg ? 'Primeira vez aqui?' : 'Bem-vindo de volta'}</p><h1>${reg ? 'Crie sua conta' : 'Entre na sua conta'}</h1>
+      <p class="muted">${reg ? 'Assim seu progresso fica guardado só para você.' : 'Continue de onde parou.'}</p>
+      <form novalidate>
+        ${reg ? '<label>Seu nome<input name="name" autocomplete="name" required></label>' : ''}
+        <label>E-mail<input name="email" type="email" autocomplete="${reg ? 'email' : 'username'}" required></label>
+        <label>Senha<input name="pass" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" required minlength="6"></label>
+        ${reg ? '<label>Repita a senha<input name="pass2" type="password" autocomplete="new-password" required></label>' : ''}
+        <div class="msg" role="alert"></div>
+        <button class="btn primary big" type="submit">${reg ? 'Criar conta e começar' : 'Entrar'}</button>
+      </form>
+      <p class="switch">${reg ? 'Já tem conta? <a href="#/entrar">Entrar</a>' : 'Ainda não tem conta? <a href="#/cadastro">Criar conta</a>'}</p>
+      <p class="muted small">🔒 A senha é transformada em um código irreversível (PBKDF2) e nunca é guardada. Tudo fica neste navegador, sem servidor: se limpar os dados do navegador, a conta some.</p>`;
+    app.appendChild(box);
+    const f = box.querySelector('form'), msg = box.querySelector('.msg'), sub = f.querySelector('button');
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault(); const d = Object.fromEntries(new FormData(f));
+      msg.className = 'msg'; msg.textContent = '';
+      if (reg && d.pass !== d.pass2) { msg.className = 'msg warn'; msg.textContent = 'As senhas não são iguais.'; return; }
+      sub.disabled = true;
+      try { if (reg) await Auth.register(d.name, d.email, d.pass); else await Auth.login(d.email, d.pass); loadProgress(); if (reg) save(); go('#/'); }
+      catch (err) { msg.className = 'msg warn'; msg.textContent = err.message; sub.disabled = false; }
+    });
+    f.querySelector('input').focus();
+  }
 
   /* ---------- início ---------- */
   function renderHome() {
@@ -270,5 +315,6 @@
     app.appendChild(box);
   }
 
+  loadProgress();
   route();
 })();

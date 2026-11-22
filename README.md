@@ -19,10 +19,11 @@ Os passos de Power Query, funções dinâmicas, dashboard e macros são feitos n
 
 ## Como usar
 
-É um site estático, sem build nem dependências. Abra o `index.html` no navegador, ou publique a pasta (por exemplo, GitHub Pages). O progresso fica salvo no `localStorage` do navegador.
+É um site estático, sem build nem dependências. Abra o `index.html` no navegador, ou publique a pasta (por exemplo, GitHub Pages). Há cadastro e login: as contas e o progresso de cada pessoa ficam no `localStorage` do navegador. A senha nunca é guardada, só um hash PBKDF2-SHA256 com sal aleatório. Não existe servidor, então isso é um controle de acesso simples, não segurança real; limpar os dados do navegador apaga as contas.
 
 ## Estrutura
 
+- `js/auth.js`: cadastro e login locais (hash PBKDF2 via WebCrypto)
 - `js/engine.js`: motor de planilha (parser e avaliador de fórmulas em português)
 - `js/sheetview.js`: grade interativa, barra de fórmulas, ferramentas e gráficos
 - `js/draw.js`: desenhos SVG das aulas
